@@ -1,39 +1,44 @@
 # Enterprise ZTNA & SSE Implementation Lab
 
-## 📌 Overview
-Architected, deployed, and validated an enterprise **Zero Trust Network Access (ZTNA)** and **Security Service Edge (SSE)** solution using **Palo Alto Prisma Access (Strata Cloud Manager)**, **Microsoft Entra ID**, and **VMware ESXi**. 
+## 📌 Executive Overview
+Architected, deployed, and validated an enterprise-grade **Zero Trust Network Access (ZTNA 2.0)** and **Security Service Edge (SSE)** solution using **Palo Alto Prisma Access (Strata Cloud Manager)**, **Microsoft Entra ID**, **Microsoft Intune**, and **VMware ESXi**.
 
-The goal of this project was to enforce least-privilege, identity-aware access, eliminate inbound public attack surfaces, and implement real-time threat inspection and policy enforcement across core internal applications including **GLPI** and **Zabbix**.
-
----
-
-## 🛠️ Tech Stack & Architecture
-* **Security & SSE:** Palo Alto Prisma Access, Strata Cloud Manager, GlobalProtect, Prisma Access Browser
-* **Identity & Access Management:** Microsoft Entra ID (SSO, MFA, Conditional Access)
-* **Protected Internal Applications:** GLPI (IT Service Desk & Asset Management), Zabbix (Infrastructure Monitoring)
-* **Infrastructure & Virtualization:** VMware ESXi, Ubuntu, Active Directory DS
-* **SIEM & Logging:** Graylog, Syslog Forwarding
+The primary objective of this project was to transition from legacy perimeter-based VPN access to a continuous-verification Zero Trust framework. The environment enforces least-privilege access, identity-aware policies, device compliance posture, inline threat inspection (SWG/CASB), and declarative Policy as Code (PaC) via Terraform.
 
 ---
 
-## 🎯 Key Capabilities & Test Scorecard
-
-| Criterion | Configuration Details & Testing Results | Status |
-| :--- | :--- | :---: |
-| **S1 — Outbound-Only Access** | Enforced access via outbound 443 TCP connectors with 0 open inbound ports. | ✅ Pass |
-| **S2 — Granular Access Control** | Per-user and per-app policy enforcement across Web (GLPI, Zabbix), SSH, RDP, SMB, and custom TCP ports. | ✅ Pass |
-| **S3 — Identity & MFA Integration** | Federated with Microsoft Entra ID for SSO and enforced MFA upon login for internal apps (GLPI / Zabbix). | ✅ Pass |
-| **S4 — Step-Up MFA** | Configured mid-session re-authentication for sensitive internal application access (e.g., Zabbix Admin Portal). | ✅ Pass |
-| **S5 — Device Posture & Compliance**| Dynamically blocked non-compliant endpoints (missing EDR / disk encryption) from accessing GLPI & Zabbix. | ✅ Pass |
-| **S6 — High Availability & Limits** | Deployed redundant connectors to test connector failover and connection limits. | ✅ Pass |
-| **S7 — Inline Security (SWG/CASB)** | SSL Inspection, URL filtering, EICAR malware block, DLP, and Shadow IT discovery. | ✅ Pass |
-| **S8 — Audit Logging** | Centralized audit logs exportable to on-premise Graylog SIEM. | ✅ Pass |
-| **S9 — Policy as Code (PaC)** | Managed Strata Cloud Manager (SCM) security policies and access rules programmatically via Terraform. | ✅ Pass |
-| **S10 — Session Control & Revocation**| Immediate session revocation upon risk-state change or policy break. | ✅ Pass |
+## 🏗️ Architecture & Component Topology
+* **Cloud Security Platform:** Palo Alto Prisma Access, Strata Cloud Manager (SCM), GlobalProtect Agent, Prisma Access Browser
+* **Identity & Access Management (IdP):** Microsoft Entra ID (SAML 2.0 Federation, MFA, Conditional Access)
+* **Endpoint Management & Compliance:** Microsoft Intune (BitLocker, EDR compliance posture checks)
+* **Protected Internal Services:** GLPI (IT Service Desk & Asset Management), Zabbix (Infrastructure Monitoring), Active Directory DS, RDP, SSH, SMB Shares
+* **Virtualization & Hardware Infrastructure:** VMware ESXi, Cisco 2911 Routers, Cisco Catalyst Switches, FortiGate NGFW
+* **Infrastructure as Code (IaC):** Terraform (`PaloAltoNetworks/scm` provider)
 
 ---
 
-## 🚀 Key Takeaways & Skills Demonstrated
-1. **Zero Trust Architecture:** Applied Zero Trust principles to secure sensitive internal management services (GLPI, Zabbix) without relying on traditional inbound VPNs.
-2. **Identity-Driven Security:** Tied network-level access directly to user identity, groups, and device posture.
-3. **Log Integration:** Centralized SSE threat and traffic event logs into Graylog for continuous security monitoring.
+## 🎯 Verification Scorecard (S1 – S10)
+
+| ID | Testing Category | Validation Details & Test Outcomes | Status |
+| :--- | :--- | :--- | :---: |
+| **S1** | **Outbound-Only Connectivity** | Perimeter firewall inbound ACLs locked (0 open inbound ports); ZTNA Connector established secure outbound-only TLS 443 tunnels. | ✅ Pass |
+| **S2** | **Granular Access Control** | Least-privilege transport and port scoping verified across Web (GLPI/Zabbix), SSH, RDP, SMB, and arbitrary TCP (10050). | ✅ Pass |
+| **SAA**| **Secure Agentless Access** | Evaluated clientless HTML5 web portal rendering for isolated browser-based Web, SSH, and RDP sessions. | ✅ Pass |
+| **S3** | **Identity & MFA Integration** | Federated SAML 2.0 login with Microsoft Entra ID, enforcing Authenticator Push (Number Matching) and FIDO2 Passkeys. | ✅ Pass |
+| **S4** | **Mid-Session Step-Up MFA** | Dynamic re-authentication forced via Entra ID when accessing sensitive paths (e.g., `/front/logs.php`). | ✅ Pass |
+| **S5** | **Device Posture & Compliance**| Integrated Intune compliance policies; non-compliant endpoints (missing BitLocker/EDR) blocked at login and session renewal. | ✅ Pass |
+| **S6** | **High Availability & Scale** | Validated multi-connector Connector Group failover and horizontal scaling topology limits (up to 400k sessions). | ✅ Pass |
+| **S7** | **Inline SSE (SWG & CASB)** | Verified SSL Forward Proxy decryption, custom URL filtering, EICAR malware blocking, DLP data pattern blocks, and Shadow IT discovery. | ✅ Pass |
+| **S8** | **Centralized Audit Logging** | Exported cloud security telemetry and traffic logs to on-premise SIEM for continuous auditing. | ✅ Pass |
+| **S9** | **Policy as Code (PaC)** | Declaratively provisioned security rules to Strata Cloud Manager using Terraform and reverse-generated HCL from live state. | ✅ Pass |
+| **S10**| **Active Session Revocation** | Demonstrated sub-second clientless disconnects and network-level session drops upon administrator force-logout. | ✅ Pass |
+
+---
+
+## 📂 Repository Structure & Documentation Walkthrough
+Detailed technical documentation and sanitized step-by-step guides are organized under the [`/docs`](./docs) folder:
+* 📘 [**Topology & Infrastructure Setup**](./docs/01-topology-and-infrastructure.md)
+* 🔐 [**Entra ID SAML Federation & Conditional Access**](./docs/02-entra-id-and-saml-federation.md)
+* 🌐 [**Prisma Access & ZTNA Connector Deployment**](./docs/03-ztna-connector-deployment.md)
+* 🧪 [**Comprehensive Testing & Verification Log (S1-S10)**](./docs/04-testing-and-verification.md)
+* ⚙️ [**Terraform Policy as Code Configurations**](./terraform/)
