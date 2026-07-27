@@ -28,7 +28,7 @@ The goal of this project was to enforce least-privilege, identity-aware access, 
 | **S6 — High Availability & Limits** | Deployed redundant connectors to test connector failover and connection limits. | ✅ Pass |
 | **S7 — Inline Security (SWG/CASB)** | SSL Inspection, URL filtering, EICAR malware block, DLP, and Shadow IT discovery. | ✅ Pass |
 | **S8 — Audit Logging** | Centralized audit logs exportable to on-premise Graylog SIEM. | ✅ Pass |
-| **S9 — Policy as Code (PaC)** | Defined app definitions (GLPI, Zabbix) and access control policies using Terraform / REST APIs. | ✅ Pass |
+| **S9 — Policy as Code (PaC)** | Managed Strata Cloud Manager (SCM) security policies and access rules programmatically via Terraform. | ✅ Pass |
 | **S10 — Session Control & Revocation**| Immediate session revocation upon risk-state change or policy break. | ✅ Pass |
 
 ---
