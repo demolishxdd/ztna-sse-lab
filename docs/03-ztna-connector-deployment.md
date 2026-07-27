@@ -9,15 +9,15 @@ This document details the deployment and configuration of **Palo Alto Prisma Acc
 
 Initial configuration was established within Strata Cloud Manager under the `Prisma Access` configuration scope:
 
-### Core Network Address Allocation
-| Parameter | Subnet / Address Range | Purpose |
+### Core Network Infrastructure Definition
+| Parameter | Configuration Scope | Purpose |
 | :--- | :--- | :--- |
-| **Internal DNS Server (`DNS_SERVER1`)** | `192.168.50.3` | Local Domain Controller resolving internal `.lab.local` FQDNs. |
-| **Internal Domain Name** | `lab.local` | Primary search domain for private application targets. |
-| **Private Application Subnet** | `192.168.50.0/24` | Internal subnet housing GLPI, Zabbix, and core services. |
-| **Connector Subnet (Outbound WAN)** | `10.10.10.0/24` | Dedicated subnet allocated for ZTNA Connector outbound transit. |
+| **Internal DNS Profile** | `Internal-DC-DNS` | Resolves internal `.lab.local` FQDNs for corporate resources. |
+| **Internal Search Domain** | `lab.local` | Primary search domain for private application targets. |
+| **Private Application Scope** | `Internal-App-Segment` | Logical network hosting internal web services and monitoring platforms. |
+| **Connector Transit Scope** | `ZTNA-WAN-Segment` | Dedicated transit network allocated for ZTNA Connector outbound traffic. |
 
-Following subnet and DNS definition, a **Push Config** operation was performed in SCM to synchronize infrastructure settings with the Prisma Access cloud processing nodes.
+Following network and DNS definition, a **Push Config** operation was performed in SCM to synchronize infrastructure settings with the Prisma Access cloud processing nodes.
 
 ---
 
@@ -42,9 +42,9 @@ The ZTNA Connector was deployed as an OVA virtual appliance on the VMware ESXi h
 |  |                                                                             |  |
 |  |  +-----------------------------------+   +-------------------------------+  |  |
 |  |  | WAN / Outbound Interface (NIC1)   |   | LAN Interface (NIC2)          |  |  |
-|  |  | IP: 10.10.10.210/24               |   | IP: 192.168.50.211/24         |  |  |
-|  |  | Default Gateway: 10.10.10.1      |   | Gateway: 0.0.0.0 (None)       |  |  |
-|  |  | DNS: Upstream (10.10.10.1)       |   | Internal DNS: 192.168.50.3    |  |  |
+|  |  | IP Assignment: Static WAN IP      |   | IP Assignment: Static LAN IP  |  |  |
+|  |  | Default Gateway: Edge Router      |   | Gateway: None (0.0.0.0)       |  |  |
+|  |  | DNS: Upstream Gateway DNS         |   | Internal DNS: Local DC DNS    |  |  |
 |  |  +-----------------------------------+   +-------------------------------+  |  |
 |  +-----------------------------------------------------------------------------+  |
 |                                                                         |         |
@@ -59,8 +59,8 @@ The ZTNA Connector was deployed as an OVA virtual appliance on the VMware ESXi h
 ### Connector Group & Network Interface Layout
 1. **Connector Group (`Group-1`):** Logical grouping created in SCM to manage connector instances, load balancing, and private app routing.
 2. **Two-Arm Network Configuration:**
-   * **WAN / Outbound Interface (NIC1):** Dedicated to outbound cloud tunnel communication. Configured with static IP `10.10.10.210/24` pointing to edge gateway `10.10.10.1`.
-   * **LAN Interface (NIC2):** Dedicated to internal application traffic. Configured with static IP `192.168.50.211/24` with **no default gateway** (`0.0.0.0`) to avoid asymmetric routing. Points to local DNS `192.168.50.3`.
+   * **WAN / Outbound Interface (NIC1):** Dedicated to outbound cloud tunnel communication. Configured with a static address pointing to the edge gateway.
+   * **LAN Interface (NIC2):** Dedicated to internal application traffic. Configured with a static address on the application subnet with **no default gateway** (`0.0.0.0`) to prevent asymmetric routing, pointing directly to internal Domain Controller DNS.
 
 ---
 
@@ -68,10 +68,10 @@ The ZTNA Connector was deployed as an OVA virtual appliance on the VMware ESXi h
 
 Internal workloads were registered as **FQDN Targets** under `Group-1` inside Strata Cloud Manager:
 
-| Application Name | FQDN Target | Protocol | Internal Target IP | Application Status |
+| Application Name | FQDN Target | Protocol | Service Target | Application Status |
 | :--- | :--- | :---: | :--- | :---: |
-| **GLPI Helpdesk** | `glpi.lab.local` | TCP | `192.168.50.4` | ✅ Up |
-| **Zabbix Monitoring** | `zabbix.lab.local` | TCP | `192.168.50.5` | ✅ Up |
+| **GLPI Helpdesk** | `glpi.lab.local` | TCP | Helpdesk Web Workload | ✅ Up |
+| **Zabbix Monitoring** | `zabbix.lab.local` | TCP | Infrastructure Monitoring Server | ✅ Up |
 
 User access requests to these FQDNs are intercepted by the GlobalProtect Agent or Secure Agentless Access portal and routed securely through the ZTNA tunnel.
 
@@ -83,7 +83,7 @@ Security policies were configured under the **Mobile Users Container – Pre Rul
 
 | Rule Name | Action | Source User / Group | Destination Target | Application / Ports | Description |
 | :--- | :---: | :--- | :--- | :--- | :--- |
-| `Allow-HR-Zabbix` | **Allow** | `cn=hr-users` | `Zabbix` (`192.168.50.5`) | `web-browsing`, `ssl` | HR department access to monitoring dashboard. |
-| `Allow-IT-GLPI` | **Allow** | `cn=it-admins` | `GLPI` (`192.168.50.4`) | `web-browsing`, `ssl` | IT Admin access to ticketing & asset management. |
-| `Allow-Directors` | **Allow** | `cn=directors` | `GLPI`, `Zabbix` | `web-browsing`, `ssl` | Executive full access to internal web applications. |
-| `Deny-All-Internal`| **Deny** | `Any` | Internal Subnets (`192.168.50.0/24`) | `Any` | Implicit explicit drop for unauthorized internal traffic. |
+| `Allow-HR-Zabbix` | **Allow** | `cn=hr-users` | `Zabbix-Target` | `web-browsing`, `ssl` | HR department access to monitoring dashboard. |
+| `Allow-IT-GLPI` | **Allow** | `cn=it-admins` | `GLPI-Target` | `web-browsing`, `ssl` | IT Admin access to ticketing & asset management. |
+| `Allow-Directors` | **Allow** | `cn=directors` | `GLPI-Target`, `Zabbix-Target` | `web-browsing`, `ssl` | Executive full access to internal web applications. |
+| `Deny-All-Internal`| **Deny** | `Any` | `Internal-Subnets-Group` | `Any` | Implicit explicit drop for unauthorized internal traffic. |
